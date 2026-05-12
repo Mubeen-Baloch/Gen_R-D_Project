@@ -1,0 +1,431 @@
+<!-- converted from genai_research_project_idea.docx -->
+
+Uncertainty-Aware Scientific Claim Synthesis: A Multi-Agent Framework for Contradiction Detection, Gap Formalization, and Confidence-Grounded Literature Review Generation
+
+Abstract
+The exponential growth of scientific publications has created an unprecedented challenge for researchers attempting to synthesize knowledge, identify genuine research gaps, and navigate conflicting findings across literature. Existing automated literature review systems treat papers as flat, unordered collections and generate summaries that lack epistemic grounding, ignore inter-paper contradictions, and produce vague, unverifiable gap claims. This paper proposes a novel autonomous multi-agent framework that addresses these three fundamental limitations through three core technical contributions: (1) a Confidence-Graded Claim Extraction and Reliability Scoring mechanism that assigns uncertainty estimates to extracted scientific claims based on multi-paper consensus analysis; (2) a Contradiction Detection and Resolution Agent that identifies, classifies, and reconciles conflicting assertions across papers using a structured conflict taxonomy; and (3) a Formalized Research Gap Ontology that produces structured, verifiable gap objects evaluated against future publication benchmarks. The system further employs a Temporal Knowledge Evolution Tracker and a Dynamic Scientific Knowledge Graph as the core intermediate representation, enabling mechanistically transparent and interpretable synthesis. Experimental evaluation on benchmark domains demonstrates significant improvements over existing automated survey systems in claim accuracy, contradiction recall, gap precision, and review coherence. This work advances the frontier of semi-autonomous scientific reasoning and positions AI as a credible research synthesis partner.
+
+1. Introduction
+1.1 Motivation
+Scientific knowledge is growing at a rate that fundamentally outpaces human capacity to synthesize it. In 2023 alone, over 2.8 million peer-reviewed articles were indexed across major academic databases. A single research domain such as transformer-based natural language processing or large language model alignment now encompasses thousands of active papers, with findings that frequently build upon, contradict, or supersede one another. The literature review — the foundational activity of any research endeavor — has become a bottleneck of enormous proportion.
+Manual literature review is time-consuming, subjective, and increasingly infeasible at scale. A thorough review of even a moderately sized domain can take months of expert effort, and the resulting document reflects the cognitive limitations of a single reviewer: selective coverage, unconscious bias toward familiar clusters of work, and an inability to systematically detect contradictions spread across hundreds of papers.
+Automated approaches have attempted to address this problem, but they introduce a different class of failures. Summarization-based systems produce fluent text that lacks epistemic grounding. Pipeline-based agent systems treat synthesis as retrieval followed by concatenation. None of the existing systems ask — and answer — the most important questions a skilled reviewer asks: How confident should I be in this claim? Which papers disagree with each other, and why? Where exactly is the frontier of knowledge, and what is the most specific gap I can formulate?
+This paper proposes a system architecture that places these three questions at its core.
+1.2 Research Motivation Through a Concrete Example
+Consider the domain of retrieval-augmented generation (RAG). A researcher entering this domain encounters papers claiming that RAG consistently outperforms parametric-only models on knowledge-intensive tasks, while other papers demonstrate that RAG performance degrades significantly for multi-hop reasoning. Still others argue the comparison is unfair because benchmarks differ. A naive summarization system produces a paragraph that smooths over these contradictions. A skilled human reviewer identifies the disagreement, classifies it as methodological, and formulates a gap: no benchmark systematically evaluates RAG under controlled multi-hop conditions with standardized retrieval corpora.
+Our system is designed to replicate this expert reasoning process autonomously.
+1.3 Key Limitations of Prior Work
+Existing systems including AutoSurvey, LitLLM, SurveyAgent, and ResearchAgent share the following structural limitations:
+Flat Paper Representation: Papers are stored as embeddings or text chunks without structured relational modeling. This makes cross-paper contradiction detection effectively impossible, since it requires comparing structured propositional claims, not dense vectors.
+Ungrounded Claim Generation: Generated reviews assert claims without any mechanism for tracking how many papers support a claim, whether supporting papers are recent, or whether counter-evidence exists. This is epistemically irresponsible and produces reviews that read confidently but mislead.
+Vague Gap Identification: Gap statements in existing systems are generated by prompting an LLM to identify what is missing. The resulting gaps are typically generic, unverifiable, and untethered to specific evidence in the literature. No existing system formalizes gaps as structured objects or evaluates them empirically.
+Static, Non-Temporal Synthesis: Papers published in 2018 and 2024 are treated equivalently. The temporal evolution of consensus — the trajectory of a research thread, the emergence of new dominant methods, the retraction or qualification of earlier findings — is entirely ignored.
+Evaluation Inadequacy: ROUGE and BERTScore measure n-gram overlap and semantic similarity, respectively. Neither measures synthesis quality, contradiction coverage, reasoning validity, or gap accuracy. Evaluating literature review quality with ROUGE is analogous to evaluating the quality of a mathematical proof by measuring sentence length.
+1.4 Contributions of This Paper
+This paper makes the following novel technical contributions:
+Confidence-Graded Claim Extraction and Reliability Scoring (CGCERS): A mechanism that extracts atomic scientific claims from papers, maps them across the corpus, and assigns confidence scores based on multi-paper consensus, recency weighting, and counter-evidence presence.
+Contradiction Detection and Resolution Agent (CDRA): A specialized agent that identifies conflicting claims across papers, classifies conflicts using a four-dimensional taxonomy (methodological, domain-specificity, temporal, definitional), and generates reasoned reconciliation statements.
+Formalized Research Gap Ontology (FRGO): A structured representation of research gaps as typed, evidence-grounded objects that can be empirically evaluated by checking whether papers published after the review corpus fill the identified gaps.
+Dynamic Scientific Knowledge Graph (DSKG): A graph-structured intermediate representation replacing flat vector stores, where nodes represent concepts, methods, datasets, and findings, and typed edges encode epistemic relationships enabling graph-based synthesis reasoning.
+Temporal Knowledge Evolution Tracker (TKET): A module that models the diachronic trajectory of research threads, tracking consensus shifts, method emergence, and claim qualification over time.
+A Novel Evaluation Protocol including Claim Coverage Score, Contradiction Detection F1, Gap Precision at K, and Temporal Coherence Score, validated against expert-authored survey papers.
+
+2. Problem Statement
+2.1 Formal Problem Definition
+Let be a corpus of research papers relevant to a user-specified research topic . Each paper contains a set of scientific claims , where each claim is a propositional assertion about methods, findings, datasets, or theoretical positions.
+We define the following sub-problems:
+Sub-problem 1 — Confidence-Graded Claim Extraction:Extract the complete claim set and for each claim , compute a confidence score reflecting multi-paper consensus and recency.
+Sub-problem 2 — Contradiction Detection:Identify the contradiction set such that for each pair , and are semantically conflicting. For each contradiction, produce a resolution statement and a conflict class .
+Sub-problem 3 — Formalized Gap Generation:Generate a structured gap set where each gap is a typed object with grounded evidence, specific enough to be empirically evaluated against future publications.
+Sub-problem 4 — Structured Review Generation:Synthesize a coherent, structured literature review that integrates , , and with appropriate epistemic grounding, thematic organization, and temporal awareness.
+2.2 Research Questions
+This work addresses four primary research questions:
+RQ1: Can a multi-agent system automatically extract scientific claims and assign calibrated confidence scores that correlate with expert assessments of claim strength?
+RQ2: Can automated contradiction detection across a heterogeneous paper corpus achieve recall and precision levels comparable to expert reviewers in identifying conflicting findings?
+RQ3: Can formalized research gap objects, generated autonomously, be empirically validated by correlating with papers published after the review corpus cutoff date?
+RQ4: Does a Knowledge Graph intermediate representation produce measurably more coherent and complete literature reviews compared to flat vector store retrieval baselines?
+
+3. Related Work
+3.1 Automated Literature Review Systems
+Early automated review systems relied on extractive summarization, selecting and concatenating relevant sentences from source papers. While computationally efficient, such systems cannot perform synthesis, reasoning, or cross-document comparison. The introduction of transformer-based language models enabled abstractive summarization, with systems like ScisummNet and subsequent work producing more fluent summaries. However, fluency does not imply synthesis quality.
+More recent systems including AutoSurvey adopt multi-stage LLM pipelines for survey generation, decomposing the process into topic decomposition, retrieval, and generation stages. LitLLM introduced a human-in-the-loop approach that improves relevance at the cost of autonomy. SurveyAgent applied ReAct-style reasoning to the survey generation task, enabling iterative query refinement. These systems represent genuine progress but share the fundamental architectural limitation of treating the paper corpus as a flat retrieval space rather than a structured relational knowledge base.
+3.2 Multi-Agent Reasoning Systems
+The ReAct framework established the foundation for interleaving reasoning and action in language model agents. Reflexion extended this by introducing a self-evaluation and memory mechanism for iterative improvement. AutoGPT and its descendants demonstrated goal-driven autonomous execution across multiple tools. More recently, CrewAI and LangGraph have provided frameworks for orchestrating multiple specialized agents with defined roles and communication protocols. Our system builds upon these foundations but introduces agent specializations and inter-agent communication protocols specifically designed for scientific reasoning tasks.
+3.3 Scientific Knowledge Graphs
+Knowledge graphs have been applied to scientific literature through systems such as SciKG, ORKG (Open Research Knowledge Graph), and ScholarlyKG. These systems require substantial human annotation effort for construction. Our Dynamic Scientific Knowledge Graph is constructed autonomously from extracted claims and relationships, with the novel addition of epistemic edge types (supports, contradicts, extends, qualifies) that enable contradiction detection at the graph level rather than the text level.
+3.4 Research Gap Identification
+Research gap identification has received limited formal treatment in the automated systems literature. Most systems either generate gap statements through direct LLM prompting or identify gaps as topics mentioned by some papers but absent in others. Neither approach produces structured, verifiable gap objects. Our formalized gap ontology represents, to our knowledge, the first attempt to define research gaps as typed, evidence-grounded, empirically evaluable structured objects.
+
+4. Proposed Methodology
+4.1 System Overview
+The proposed system follows an iterative autonomous loop structured around a central Dynamic Scientific Knowledge Graph as its core intermediate representation. Unlike existing systems that treat synthesis as a linear pipeline, our architecture is fundamentally graph-centric: all agents read from and write to the DSKG, enabling collective reasoning across the entire agent ensemble.
+The high-level execution flow is as follows:
+
+
+
+
+
+SEE next page
+
+
+User Input (Topic T)
+↓
+Goal Interpreter → Refined Query + Subtopic Map
+↓
+Planner Agent → Task Execution Plan
+↓
+[Retrieval Loop]
+Retriever Agent → Raw Paper Corpus
+↓
+PDF Processor → Structured Paper Objects
+↓
+Claim Extractor Agent → Atomic Claims per Paper
+↓
+Confidence Scorer → Confidence-Graded Claim Set
+↓
+DSKG Builder → Dynamic Scientific Knowledge Graph
+↓
+[Contradiction Resolution Loop]
+Contradiction Detector Agent → Conflict Pairs
+↓
+Conflict Classifier → Typed Conflict Objects
+↓
+Resolution Agent → Reconciliation Statements
+↓
+[Gap Formalization Loop]
+Gap Analyzer Agent → Evidence-Grounded Gap Objects
+↓
+Temporal Evolution Tracker → Diachronic Thread Models
+↓
+[Synthesis Loop]
+Synthesizer Agent → Structured Literature Review Draft
+↓
+Critic Agent → Quality Evaluation + Feedback
+↓
+Autonomy Loop Controller → Refine or Terminate
+↓
+Final Literature Review (with Claim Confidence Map,
+Contradiction Registry, Formalized Gap Set)
+
+
+4.2 Confidence-Graded Claim Extraction and Reliability Scoring (CGCERS)
+4.2.1 Atomic Claim Extraction
+The Claim Extractor Agent processes each paper through a structured prompt that instructs the LLM to decompose the paper into atomic propositional claims. An atomic claim is defined as a single, indivisible assertion that can be independently evaluated as true or false within a defined context. The extraction prompt is structured as follows:
+The agent is instructed to extract claims at three levels: (a) Method Claims describing what technique or approach was proposed or used; (b) Result Claims describing empirical outcomes, benchmark scores, or observed phenomena; and (c) Theoretical Claims describing proposed explanations, hypotheses, or theoretical positions. Each extracted claim is stored with its source paper identifier, location within the paper, and claim type label.
+4.2.2 Confidence Scoring Formula
+For each claim extracted from paper , the confidence score is computed as:
+
+Where:
+Consensus(c) is the proportion of papers in the corpus that contain a claim semantically equivalent or supporting , computed via embedding similarity threshold matching against the DSKG.
+Recency(c) is a time-decay weighted score that gives higher weight to supporting evidence from more recent papers, computed as where is the publication year of paper and is a decay constant.
+Contradiction(c) is the proportion of papers containing claims flagged as conflicting with by the Contradiction Detection Agent.
+are learnable weighting parameters set initially to and tunable through the critic feedback loop.
+The resulting confidence score categorizes each claim as: High Confidence (), Moderate Confidence (), Contested (), or Disputed ().
+The final literature review explicitly marks each synthesized assertion with its confidence category, enabling readers to distinguish well-established findings from contested ones at a glance. This represents a fundamental departure from existing systems that assert all synthesized claims with equal implicit confidence.
+4.3 Contradiction Detection and Resolution Agent (CDRA)
+4.3.1 Contradiction Detection Architecture
+Contradiction detection operates at two levels: the embedding level for candidate identification and the reasoning level for confirmation and classification. This two-stage approach balances computational efficiency with detection accuracy.
+Stage 1 — Candidate Pair Identification: For each pair of claims from different papers, a contradiction candidate score is computed using a dedicated Contradiction Scoring Model. This model is a fine-tuned sentence pair classifier trained on a dataset of confirmed contradictory and non-contradictory scientific claim pairs. Pairs with a contradiction score above a threshold are forwarded to Stage 2.
+Stage 2 — LLM-Based Confirmation and Classification: Each candidate pair is submitted to the Contradiction Detection Agent with a structured prompt that instructs the model to: (a) confirm whether the pair is genuinely contradictory, partially contradictory, or merely discussing different aspects of the same topic; (b) assign a conflict type from the four-dimensional taxonomy; and (c) generate an explanation of why the contradiction exists.
+4.3.2 Four-Dimensional Conflict Taxonomy
+The conflict taxonomy is the conceptual centerpiece of the CDRA. We define four orthogonal conflict types:
+Type 1 — Methodological Conflict: Two claims reach different conclusions because they employ different methods, metrics, or experimental setups. For example, one paper claims RAG outperforms GPT-4 on QA benchmarks using exact match scoring, while another claims it does not using human preference evaluation. These claims are not truly contradictory — they reflect methodological incomparability. The resolution statement acknowledges this and flags the need for a standardized evaluation protocol.
+Type 2 — Domain-Specificity Conflict: Two claims conflict because they hold in different application domains. A claim that attention mechanisms are sufficient for long-document understanding may hold for legal documents but not for scientific papers with dense cross-references. Resolution involves specifying the domain boundaries within which each claim holds.
+Type 3 — Temporal Conflict: Two claims conflict because one represents a finding that has been superseded, qualified, or contradicted by more recent work. A 2019 claim about the superiority of BERT for zero-shot classification may conflict with 2023 findings showing GPT-style models consistently outperform it. Resolution involves establishing a temporal ordering and qualifying the earlier claim.
+Type 4 — Definitional Conflict: Two claims appear to conflict but use different definitions for the same term. One paper defines "few-shot learning" as learning from fewer than 10 examples; another uses the term for up to 100 examples. Resolution involves unpacking the definitional discrepancy and restating both claims with explicit definitions.
+4.3.3 Contradiction Resolution and the Conflict Registry
+For each confirmed contradiction, the Resolution Agent generates a Reconciliation Statement — a paragraph-length structured explanation that presents both claims, identifies the conflict type, provides the conflict explanation, and synthesizes a qualified assertion that is true under specified conditions. These reconciliation statements are stored in a Conflict Registry — a structured database of all identified contradictions — that is directly integrated into the literature review as a dedicated section titled "Contested Claims and Methodological Disputes."
+The inclusion of a dedicated Conflict Registry section is itself a contribution to literature review methodology. Expert survey papers frequently contain such discussions, but no automated system has previously generated them systematically.
+4.4 Formalized Research Gap Ontology (FRGO)
+4.4.1 Gap Object Schema
+Each research gap is represented as a structured typed object with the following schema:
+json
+{
+"gap_id": "G-0042",
+"gap_type": "unexplored_intersection",
+"topic_cluster": "retrieval-augmented generation",
+"missing_intersection": [
+"multi-hop reasoning",
+"low-resource language settings"
+],
+"gap_statement": "No existing work evaluates RAG frameworks
+under controlled multi-hop reasoning conditions in
+low-resource language settings with standardized
+retrieval corpora.",
+"evidence_papers": ["p12", "p34", "p67"],
+"evidence_type": "implicit_boundary",
+"implied_by": [
+"p12 evaluates RAG on English QA benchmarks only",
+"p34 identifies multi-hop as an open challenge",
+"p67 surveys low-resource NLP gaps"
+],
+"confidence": 0.81,
+"temporal_position": "persistent_since_2021",
+"gap_class": "methodological",
+"falsifiability": "A paper addressing this gap would include
+multi-hop QA evaluation across >= 3 low-resource languages
+with a standardized retrieval corpus."
+}
+4.4.2 Gap Type Taxonomy
+Gaps are classified into four types:
+Unexplored Intersection: A combination of two or more established topics that no paper has addressed together. These are identified by finding pairs of topic clusters that share no papers in the DSKG.
+Underexplored Area: A topic addressed by fewer papers than its citation frequency and community attention would predict, indicating disproportionately low research coverage relative to importance.
+Contradictory State: A topic area where fundamental disagreement exists with no resolution paper providing a definitive synthesis. The gap is the absence of a resolution.
+Methodological Gap: An established finding has not been reproduced using alternative methodologies, creating uncertainty about whether the finding is method-specific.
+4.4.3 Empirical Gap Validation Protocol
+The defining feature of the FRGO is its empirical evaluability. Unlike LLM-generated gap statements that cannot be objectively assessed, our structured gap objects include an explicit Falsifiability Statement describing what a paper that fills the gap would contain. Evaluation proceeds as follows:
+A held-out set of papers published after the corpus cutoff date is assembled. For each gap object, an automated search is conducted to identify papers in the held-out set that match the falsifiability criteria. Gap Precision at K is computed as the proportion of the top-K identified gaps that are filled by papers in the held-out set, confirming that the gaps were real and specific enough to attract subsequent research. This constitutes a novel, objective evaluation methodology for gap identification quality.
+4.5 Dynamic Scientific Knowledge Graph (DSKG)
+4.5.1 Graph Schema
+The DSKG is a directed heterogeneous graph where:
+Node Types :
+Concept Nodes: Named entities representing research concepts, models, datasets, metrics, and domains.
+Claim Nodes: Atomic scientific claims extracted by the Claim Extractor Agent.
+Paper Nodes: Metadata representations of source papers.
+Method Nodes: Specific techniques, algorithms, or frameworks.
+Finding Nodes: Empirical outcomes and benchmark results.
+Edge Types (Epistemic Relationship Types):
+supports — Claim A provides evidence for Claim B
+contradicts — Claim A conflicts with Claim B (bidirectional)
+extends — Paper A builds upon and extends the contribution of Paper B
+qualifies — Claim A specifies boundary conditions on Claim B
+applies_to — Method M is applied to Domain D in Paper P
+evaluated_on — Method M is evaluated using Dataset/Metric X
+introduces — Paper P introduces Concept/Method C
+outperforms — Method A demonstrates superior performance over Method B under specified conditions
+4.5.2 Graph Construction Process
+The DSKG is constructed incrementally as the Claim Extractor Agent processes each paper. After each paper is processed, its claims are compared against existing DSKG nodes using semantic similarity search to identify potential connections. The relationship type is determined by a dedicated Relationship Classifier — a fine-tuned model that takes a claim pair and classifies the edge type from the taxonomy above.
+The DSKG is stored using a graph database (Neo4j) rather than a vector store, enabling graph-traversal-based reasoning that is impossible with flat embedding retrieval. Semantic search over embeddings is retained as a secondary index for initial candidate identification, but all synthesis reasoning operates over the structured graph.
+4.5.3 Graph-Based Synthesis Reasoning
+The Synthesizer Agent generates the literature review by traversing the DSKG rather than retrieving raw text chunks. Specifically:
+Thematic Clustering is performed by running community detection (Louvain algorithm) over the DSKG to identify cohesive clusters of concepts, methods, and findings that represent natural subsections of the literature review.
+Lineage Tracing follows extends and introduces edges to reconstruct the developmental history of each research thread, enabling the Synthesizer to write about the evolution of ideas rather than merely listing papers.
+Contradiction Surfacing traverses contradicts edges to identify all conflicts relevant to each thematic cluster, ensuring that the Conflict Registry is comprehensive.
+Gap Detection identifies disconnected subgraphs, sparse cross-cluster edges, and nodes with high citation centrality, but few extends edges — all structural indicators of research gaps in the DSKG.
+4.6 Temporal Knowledge Evolution Tracker (TKET)
+4.6.1 Temporal Modeling
+The TKET models research threads as temporal sequences by associating all DSKG nodes with publication timestamps and constructing Thread Evolution Timelines — ordered sequences of papers and claims within each thematic cluster.
+For each research thread , the TKET computes:
+Consensus Trajectory: How the dominant claim within a thread has shifted over time. A positive trajectory indicates growing consensus; a diverging trajectory indicates increasing dispute; a reversal indicates a paradigm shift.
+Method Emergence Curves: The first appearance and subsequent adoption rate of key methods within a thread, enabling identification of emerging techniques before they achieve mainstream recognition.
+Claim Qualification Patterns: Instances where a claim from year is explicitly qualified, refined, or bounded by papers in years through , indicating that the original claim was overstated.
+4.6.2 Diachronic Review Sections
+The TKET output enables a qualitatively new type of literature review section: the Diachronic Narrative, which describes how the field's understanding of a topic has evolved over time. Instead of presenting papers as a contemporaneous set, the review reads: "Early work from 2018-2020 established X. This was qualified in 2021-2022 by evidence that X holds only under condition Y. The current consensus as of 2024 is Z, though a minority position challenges this based on evidence W." This temporal grounding substantially increases the review's utility for researchers entering a new field.
+4.7 Multi-Agent Architecture
+4.7.1 Agent Roster and Responsibilities
+
+
+
+4.7.2 Inter-Agent Communication Protocol
+Agents communicate through a shared Agent Message Bus using structured JSON message objects. Each message contains: sender agent ID, recipient agent ID or broadcast flag, message type (task assignment, result delivery, feedback, query), payload, and a timestamp. The Planner Agent maintains a Task Dependency Graph ensuring that no agent begins execution before its prerequisite inputs are available.
+4.7.3 The Autonomy Loop
+The Autonomy Loop is governed by the Autonomy Loop Controller, which evaluates the Critic Agent's quality assessment against a configurable quality threshold . The loop proceeds as:
+Initialize DSKG, Conflict Registry, Gap Set
+While overall_quality < Q*:
+Execute current task plan
+Critic Agent evaluates:
+- Claim Coverage Score
+- Contradiction Detection Completeness
+- Gap Formalization Quality
+- Temporal Coherence Score
+- Synthesis Coherence Score
+If coverage < coverage_threshold:
+Retriever Agent executes additional targeted queries
+If contradiction completeness < contradiction_threshold:
+Contradiction Detector Agent re-scans expanded DSKG
+If gap quality < gap_threshold:
+Gap Analyzer Agent refines gap objects
+Planner Agent updates task plan based on feedback
+overall_quality = weighted_average(critic_scores)
+Terminate and generate final review
+
+5. System Architecture
+5.1 Layered Architecture Overview
+The system architecture is organized into five layers:
+Layer 1 — Interface Layer: Streamlit-based web interface accepting user topic input, configuration parameters (corpus size, temporal scope, confidence threshold, autonomy loop maximum iterations), and presenting the final review with interactive confidence visualizations, the Conflict Registry, and the Gap Explorer.
+Layer 2 — Orchestration Layer: The Planner Agent and Autonomy Loop Controller reside at this layer, managing the overall execution flow, task scheduling, and quality-driven termination.
+Layer 3 — Agent Execution Layer: All specialized agents execute at this layer, consuming inputs from the Message Bus and producing outputs returned to the shared state. Agents are implemented as independent Python modules with defined input/output schemas.
+Layer 4 — Knowledge Layer: The DSKG (Neo4j), the Claim Store (PostgreSQL with pgvector extension for hybrid graph and semantic search), the Conflict Registry, and the Gap Object Store reside at this layer.
+Layer 5 — External Integration Layer: Academic API connectors (Semantic Scholar, arXiv), the PDF processing pipeline (PyMuPDF), and the LLM API clients (Anthropic Claude for reasoning agents, OpenAI for embedding generation) operate at this layer.
+5.2 Component-Level Architecture Detail
+5.2.1 Claim Extraction Pipeline
+PDF Input
+→ PyMuPDF → Raw Text Extraction
+→ Section Segmenter → {Abstract, Introduction,
+Methods, Results, Discussion}
+→ Table and Figure Extractor → Structured Data Objects
+→ Claim Extractor Agent (LLM Prompt)
+→ Prompt: "Extract all atomic scientific claims
+from the following {section}.
+For each claim specify:
+claim_text, claim_type
+(method/result/theoretical),
+confidence_indicators
+(hedging language detected:
+suggests/demonstrates/proves),
+subject_entities,
+condition_qualifiers"
+→ JSON Claim Objects
+→ Claim Deduplicator (Semantic Similarity Filter)
+→ Confidence Scorer (CGCERS)
+→ DSKG Insertion
+5.2.2 Contradiction Detection Pipeline
+DSKG Query: All claim pairs with embedding similarity > θ₁
+→ Contradiction Candidate Filter (Fine-tuned Classifier)
+→ Pairs with contradiction score > τ
+→ Contradiction Confirmation Agent (LLM)
+→ Prompt: "Given these two scientific claims from
+different papers, determine:
+(1) Are these claims contradictory,
+partially contradictory, or non-contradictory?
+(2) If contradictory, classify the conflict type
+from {methodological, domain-specificity,
+temporal, definitional}.
+(3) Generate a reconciliation statement
+explaining how both claims can be
+understood within a unified framework."
+→ Conflict Object: {pair, type, explanation, resolution}
+→ Conflict Registry Insertion
+→ DSKG Edge Update: claim_a --contradicts--> claim_b
+5.2.3 Gap Analysis Pipeline
+DSKG Structural Analysis:
+→ Community Detection (Louvain) → Topic Clusters
+→ Cross-Cluster Edge Density Analysis
+→ Sparse cross-cluster connections → Intersection Gaps
+→ Node Centrality vs. Extension Ratio Analysis
+→ High centrality, low extensions → Underexplored Gaps
+→ Contradiction Edge Clustering
+→ Dense contradictions, no resolution papers → Contradictory State Gaps
+→ Method Node Coverage Analysis
+→ Methods applied to few domains → Methodological Gaps
+
+For each identified gap:
+→ Gap Formalization Agent (LLM)
+→ Prompt: "Based on the following structural
+evidence from the knowledge graph,
+formulate a research gap as a
+structured object including:
+gap_type, topic_cluster,
+missing_intersection, gap_statement,
+evidence_papers, implied_by,
+falsifiability_statement"
+→ FRGO Gap Object
+→ Gap Confidence Scorer
+→ Gap Object Store Insertion
+
+6. Tools and Technologies
+6.1 Programming Language and Environment
+Python 3.11 as the primary development language
+Docker containerization for reproducibility and deployment
+Poetry for dependency management
+6.2 Large Language Models
+Anthropic Claude 3.5 Sonnet for all primary reasoning agents (Claim Extractor, Contradiction Detector, Resolution Agent, Gap Analyzer, Synthesizer, Critic) due to superior instruction-following on structured JSON output tasks and long-context handling
+OpenAI text-embedding-3-large for generating high-dimensional claim embeddings used in the DSKG semantic search index
+OpenAI GPT-4o as a secondary LLM for comparative ablation experiments
+6.3 Agent Orchestration Frameworks
+LangGraph for implementing the stateful multi-agent execution graph with conditional edges (used for the Autonomy Loop Controller's decision logic)
+CrewAI for defining agent roles, goals, and backstories for the specialized agent ensemble
+LangChain for tool wrappers, prompt templates, and output parsers
+6.4 Knowledge Graph
+Neo4j graph database for persistent DSKG storage with Cypher query interface
+NetworkX for in-memory graph algorithm execution (Louvain community detection, centrality computation, lineage tracing)
+py2neo Python client library for Neo4j interaction
+6.5 Vector Search and Hybrid Retrieval
+PostgreSQL with pgvector extension for combined structured metadata filtering and vector similarity search on claim embeddings
+FAISS as a fast in-memory index for real-time candidate pair identification during contradiction detection
+Chroma as a development-stage vector store for rapid prototyping
+6.6 Academic Data Retrieval
+Semantic Scholar API (S2 API) for paper metadata, abstracts, citation graphs, and author information
+arXiv API for preprint retrieval
+CrossRef API for DOI resolution and publication metadata
+Unpaywall API for open-access PDF retrieval
+6.7 PDF and Document Processing
+PyMuPDF (fitz) for PDF text extraction with layout preservation
+pdfplumber for table extraction from PDF documents
+GROBID (via Docker container) for structured academic paper parsing including section segmentation and reference extraction
+6.8 NLP and Machine Learning
+spaCy (en_core_web_trf) for named entity recognition, dependency parsing, and coreference resolution during claim extraction
+Hugging Face Transformers for the fine-tuned Contradiction Scoring Model (based on DeBERTa-v3-large fine-tuned on a custom contradictory claim pair dataset)
+sentence-transformers (all-mpnet-base-v2) for fast semantic similarity computation
+scikit-learn for evaluation metric computation and clustering validation
+6.9 Evaluation and Experiment Tracking
+MLflow for tracking experiment configurations, model versions, and evaluation metrics across autonomy loop iterations
+Weights and Biases for visualization of training curves for fine-tuned components
+ROUGE and BERTScore libraries for baseline comparison metrics
+6.10 Frontend and Visualization
+Streamlit for the primary web interface
+Plotly for interactive confidence score visualizations, DSKG subgraph visualizations, and temporal evolution charts
+PyVis for interactive knowledge graph rendering in the browser
+
+7. Evaluation Strategy
+7.1 Evaluation Overview
+Evaluation of literature review systems is a notoriously difficult problem because there is no single ground truth review for a given topic. Our evaluation strategy addresses this through four complementary methods: automated metric computation against expert surveys, novel task-specific metrics, human expert evaluation, and the empirical gap validation protocol.
+7.2 Benchmark Datasets and Domains
+Domain Selection: Three domains are selected representing different characteristics: (1) Retrieval-Augmented Generation — a rapidly evolving domain with frequent contradictions; (2) Graph Neural Networks — a more mature domain with established consensus on core findings; (3) Low-Resource Machine Translation — a domain with significant methodological diversity.
+Gold Standard Surveys: For each domain, we identify three to five high-quality expert-authored survey papers as gold standards. These are withheld from the system's retrieval corpus and used only for evaluation.
+Corpus Construction: For each domain, a corpus of 50 to 150 primary research papers is assembled, spanning the years 2017 to 2024. A held-out set of papers published in 2024 and 2025 is assembled for gap validation.
+7.3 Novel Task-Specific Metrics
+Claim Coverage Score (CCS): Measures the proportion of key claims identified in the gold standard survey that are also present (in semantically equivalent form) in the generated review. Computed using embedding similarity with threshold matching. CCS measures content recall from an expert perspective.
+Confidence Calibration Score (CalibScore): Measures whether the system's confidence assignments are calibrated. For claims marked as High Confidence, the proportion that expert reviewers agree are well-established should be high. For claims marked as Disputed, the proportion that experts flag as contested should be high. Calibration curves are plotted for each confidence category.
+Contradiction Detection F1 (CD-F1): A held-out contradiction pair set is constructed by having domain experts identify genuine contradictions within each corpus. Precision is the proportion of system-identified contradictions confirmed by experts; recall is the proportion of expert-identified contradictions found by the system.
+Gap Precision at K (GP@K): The top-K gap objects generated by the system are evaluated against the held-out future paper set. A gap is considered validated if a paper in the held-out set directly addresses the gap as specified by the falsifiability statement. GP@5 and GP@10 are reported.
+Temporal Coherence Score (TCS): Expert reviewers assess whether the temporal narrative produced by the TKET accurately represents the historical development of the field, rated on a 5-point Likert scale.
+7.4 Human Evaluation Protocol
+Human evaluation is conducted with five domain experts per domain. Reviewers are presented with the generated review alongside (a) the gold standard survey and (b) the output of three baseline systems. Evaluation dimensions are:
+Factual Accuracy: Are claims accurately attributed and correctly stated?
+Synthesis Quality: Does the review integrate multiple papers rather than merely summarizing individually?
+Contradiction Handling: Are conflicting findings acknowledged and addressed?
+Gap Usefulness: Are identified research gaps specific and actionable?
+Temporal Awareness: Does the review accurately convey the historical development of the field?
+Each dimension is rated on a 7-point Likert scale. Inter-rater reliability is measured using Cohen's Kappa. Reviewers are blind to which system generated which output.
+7.5 Ablation Study Design
+To validate the contribution of each novel component, a systematic ablation study is conducted comparing:
+
+See next page
+
+8. Limitations
+LLM Hallucination Risk in Claim Extraction: Despite structured prompting, LLMs may hallucinate claim details not present in the source paper. This is mitigated through a post-extraction verification step that checks extracted claims against source text using substring and semantic matching, but cannot be fully eliminated.
+Knowledge Graph Construction Accuracy: Relationship classification errors during DSKG construction may introduce incorrect edges that propagate through synthesis. The Critic Agent's coverage evaluation partially mitigates this but cannot catch all errors.
+Scalability at Corpus Size: The contradiction detection pairwise comparison has quadratic complexity in the number of claims. For corpora exceeding 500 papers, approximate nearest-neighbor search is used for candidate filtering, which may reduce recall.
+Evaluation Ground Truth Limitations: Expert-authored survey papers used as gold standards may themselves contain biases, omissions, and errors, limiting their validity as absolute ground truth.
+Domain Generalization: The fine-tuned Contradiction Scoring Model is trained on NLP and computer science papers. Performance on domains with different rhetorical conventions (e.g., medicine, social sciences) requires domain-specific fine-tuning.
+
+9. Future Work
+Knowledge Graph Enhancement with Citation Intent Classification: Incorporating citation intent classification (whether a citation is supportive, contrasting, or neutral) from tools such as SciCite directly into DSKG edge construction.
+Domain-Specific Fine-Tuning: Fine-tuning the Claim Extractor and Contradiction Detector agents on domain-specific corpora for medicine, law, and social sciences.
+Real-Time Monitoring: Extending the system to monitor newly published papers and automatically update the DSKG, Conflict Registry, and Gap Set when new work resolves a gap or introduces a new contradiction.
+Peer Reviewer Simulation Agent: Adding a Peer Reviewer Agent that evaluates the generated review against venue-specific standards, simulating the review process for target publication venues.
+Multi-Language Corpus Support: Extending retrieval and processing to non-English language papers, important for fields with significant non-English publication traditions.
+
+10. Conclusion
+This paper has presented a novel autonomous multi-agent framework for scientific literature review generation that addresses three fundamental limitations of existing systems: the absence of epistemic grounding for synthesized claims, the inability to detect and resolve contradictions across papers, and the generation of vague and unverifiable research gap statements. The system's five core technical contributions — Confidence-Graded Claim Extraction and Reliability Scoring, the Contradiction Detection and Resolution Agent, the Formalized Research Gap Ontology, the Dynamic Scientific Knowledge Graph, and the Temporal Knowledge Evolution Tracker — collectively advance the state of the art in automated scientific reasoning.
+The proposed evaluation framework, introducing Claim Coverage Score, Contradiction Detection F1, Gap Precision at K, and Temporal Coherence Score, addresses the longstanding evaluation inadequacy in automated literature review research and provides a reusable assessment protocol for future work in this domain.
+By moving beyond static pipeline summarization toward a graph-centric, epistemically grounded, contradiction-aware, and temporally sensitive synthesis architecture, this work takes a meaningful step toward AI systems capable of genuine scientific reasoning partnership — not merely retrieving and rewording existing text, but reasoning about the structure of knowledge itself.
+
+This document constitutes the full research specification for implementation and should be treated as the primary reference throughout development. All architectural decisions during implementation should be traceable to the components and justifications described herein.
+
+| Agent | Role | Input | Output |
+| --- | --- | --- | --- |
+| Goal Interpreter | Parses and expands user query into subtopic map and keyword hierarchy | Raw research topic | Structured query object with subtopics, keywords, temporal scope |
+| Planner Agent | Decomposes task into execution plan with dependency ordering | Structured query object | Ordered task DAG with resource allocation |
+| Retriever Agent | Fetches papers from academic APIs with iterative query refinement | Search queries | Raw paper metadata and PDF links |
+| PDF Processor | Extracts structured text, tables, and figures from PDF files | PDF files | Structured paper objects |
+| Claim Extractor Agent | Extracts atomic typed claims from papers | Structured paper objects | Typed claim sets per paper |
+| Confidence Scorer | Computes CGCERS confidence scores | Claim sets + DSKG | Confidence-graded claim objects |
+| DSKG Builder | Constructs and updates the knowledge graph | Claims + relationships | Updated DSKG |
+| Contradiction Detector Agent | Identifies conflicting claim pairs | DSKG contradiction edges | Conflict candidate pairs |
+| Conflict Classifier | Classifies conflict type and generates resolution | Conflict pairs | Typed conflict objects + reconciliation statements |
+| Gap Analyzer Agent | Generates formalized gap objects from DSKG structural analysis | DSKG + confidence scores | Structured gap objects (FRGO format) |
+| Temporal Evolution Tracker | Models diachronic thread trajectories | DSKG + timestamps | Thread timeline objects |
+| Synthesizer Agent | Generates structured literature review via DSKG traversal | DSKG + all agent outputs | Draft literature review |
+| Critic Agent | Evaluates review quality across five dimensions | Draft review + DSKG | Quality scores + structured feedback |
+| Autonomy Loop Controller | Decides whether to terminate or refine | Critic feedback + quality scores | Continue/terminate signal + refinement directives |
+| System Variant | CGCERS | CDRA | FRGO | DSKG | TKET |
+| --- | --- | --- | --- | --- | --- |
+| Full System | ✓ | ✓ | ✓ | ✓ | ✓ |
+| No Confidence Scoring | ✗ | ✓ | ✓ | ✓ | ✓ |
+| No Contradiction Detection | ✓ | ✗ | ✓ | ✓ | ✓ |
+| No Formalized Gaps | ✓ | ✓ | ✗ | ✓ | ✓ |
+| Vector Store (No KG) | ✓ | ✓ | ✓ | ✗ | ✓ |
+| No Temporal Tracking | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Baseline (RAG Only) | ✗ | ✗ | ✗ | ✗ | ✗ |

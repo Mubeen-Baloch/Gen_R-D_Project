@@ -1,0 +1,16 @@
+.git
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db
+.ipynb_checkpoints
+data/
+temp/
+paper/
+*.zip
+*.pdf
+*.docx
+scratch/
+artifacts/

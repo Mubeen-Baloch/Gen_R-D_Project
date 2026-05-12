@@ -1,0 +1,87 @@
+%===================================================================
+\section{System Architecture and Implementation}
+%===================================================================
+
+\subsection{Layered Architecture}
+
+The system is organized into five layers as shown in Table~\ref{tab:layers}.
+
+\begin{table}[ht]
+\caption{Five-layer system architecture with component mapping.}\label{tab:layers}
+\centering
+\small
+\begin{tabular}{p{2.8cm}p{8.5cm}}
+\toprule
+\textbf{Layer} & \textbf{Components} \\
+\midrule
+Interface & Streamlit web interface with topic input, interactive KG viewer, Conflict Registry, Gap Explorer, Review output, and Evaluation Dashboard \\
+Orchestration & Planner Agent, Autonomy Loop Controller, PipelineState management \\
+Agent Execution & 11 specialized agents with structured I/O schemas and shared message bus \\
+Knowledge & DSKG (NetworkX), ClaimStore (ChromaDB), ConflictRegistry (JSON), GapStore (JSON) \\
+External Integration & Semantic Scholar API, arXiv API, GROBID PDF processor, Google Gemini LLM API \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Technology Stack}
+
+The implementation uses the following key technologies:
+
+\begin{itemize}
+    \item \textbf{LLM Engine:} Google Gemini 2.0 Flash as primary reasoning engine via LangChain, with a modular \texttt{BaseAgent} class enabling seamless switching to OpenAI or Anthropic providers.
+    \item \textbf{Knowledge Graph:} NetworkX for in-memory heterogeneous directed graph with JSON persistence, supporting Louvain community detection, PageRank and betweenness centrality, and lineage tracing.
+    \item \textbf{Vector Store:} ChromaDB with cosine similarity for semantic claim search, supporting consensus computation and contradiction candidate identification.
+    \item \textbf{PDF Processing:} GROBID (via Docker) for structured TEI XML parsing of academic PDFs with section segmentation and reference extraction; PyMuPDF as a heuristic fallback.
+    \item \textbf{NLI Model:} Pre-trained cross-encoder/nli-deberta-v3-base for Stage~1 contradiction candidate filtering.
+    \item \textbf{Embeddings:} Google Gemini embedding API (models/embedding-001) with sentence-transformers (all-MiniLM-L6-v2) as local fallback.
+    \item \textbf{Frontend:} Streamlit with Plotly for evaluation radar charts and streamlit-agraph for interactive knowledge graph visualization.
+\end{itemize}
+
+\subsection{Claim Extraction Pipeline}
+
+The claim extraction pipeline processes each paper through the following stages:
+
+\begin{enumerate}
+    \item \textbf{PDF Ingestion:} GROBID parses the PDF into TEI XML, extracting structured sections (abstract, introduction, methods, results, discussion, conclusion), tables, and figures. If GROBID is unavailable, PyMuPDF performs raw text extraction with heuristic section segmentation using regex-based header detection.
+    \item \textbf{Section-Level Extraction:} Each section is submitted to the Claim Extractor Agent with a structured prompt specifying the expected output schema (claim\_text, claim\_type, confidence\_indicators, subject\_entities, condition\_qualifiers).
+    \item \textbf{Embedding Generation:} Each extracted claim receives a vector embedding via the Google Gemini embedding API for subsequent similarity-based operations.
+    \item \textbf{CGCERS Scoring:} The Confidence Scorer computes consensus, recency, and contradiction scores using Equation~\ref{eq:cgcers}, querying the ChromaDB claim store for semantically similar claims from other papers.
+    \item \textbf{DSKG Insertion:} Scored claims are added as nodes to the DSKG with edges linking them to their source papers, related concepts, and methods.
+\end{enumerate}
+
+\subsection{Contradiction Detection Pipeline}
+
+The two-stage CDRA pipeline operates as follows:
+
+\begin{enumerate}
+    \item \textbf{Candidate Identification:} For each claim, ChromaDB retrieves semantically similar claims from different papers (similarity $> \theta_1 - 0.2$). The NLI model computes contradiction probabilities for each candidate pair.
+    \item \textbf{Filtering:} Pairs with NLI contradiction score $> \tau$ (default $\tau = 0.6$) are forwarded to Stage~2. The top 50 candidates (sorted by NLI score) are processed to manage API costs.
+    \item \textbf{LLM Confirmation:} Each candidate pair, augmented with paper metadata (title, year), is submitted to the LLM for confirmation, classification, and explanation generation.
+    \item \textbf{Resolution:} Confirmed contradictions are passed to the Resolution Agent, which generates detailed reconciliation statements and stores the complete \texttt{ConflictObject} in the Conflict Registry.
+    \item \textbf{DSKG Update:} Bidirectional \emph{contradicts} edges are added to the DSKG between confirmed conflicting claims.
+\end{enumerate}
+
+\subsection{Gap Analysis Pipeline}
+
+The FRGO gap analysis pipeline combines structural graph analysis with LLM-based formalization:
+
+\begin{enumerate}
+    \item \textbf{Community Detection:} Louvain algorithm partitions the DSKG into thematic clusters.
+    \item \textbf{Structural Analysis:} Four types of structural gap indicators are computed:
+    \begin{itemize}
+        \item Sparse cross-cluster edge density $\rightarrow$ Intersection Gaps
+        \item High PageRank centrality with few \emph{extends} edges $\rightarrow$ Underexplored Gaps
+        \item Dense contradiction edges without resolution papers $\rightarrow$ Contradictory State Gaps
+        \item Methods applied to few domains $\rightarrow$ Methodological Gaps
+    \end{itemize}
+    \item \textbf{LLM Formalization:} Each structural indicator is submitted to the Gap Analyzer Agent for formalization into a complete FRGO gap object with falsifiability statement.
+    \item \textbf{Gap Store Insertion:} Formalized gaps are persisted to the JSON-backed Gap Store with confidence ranking.
+\end{enumerate}
+
+\subsection{Data Models}
+
+The system uses Pydantic-based data models ensuring type safety and validation. The central \texttt{PipelineState} model maintains the shared state across all agents, containing the paper corpus, extracted claims, conflict pairs, gap objects, temporal threads, the generated review, and evaluation results. Key model classes include \texttt{AtomicClaim}, \texttt{ConfidenceGradedClaim}, \texttt{ConflictPair}, \texttt{ConflictObject}, \texttt{GapObject}, \texttt{TemporalThread}, \texttt{GeneratedReview}, and \texttt{CriticEvaluation}.
+
+\subsection{Configuration Management}
+
+All system parameters are managed through a centralized Pydantic Settings class loading from a \texttt{.env} file, including: LLM provider selection and API keys, GROBID server URL, pipeline parameters (max papers, autonomy iterations, quality threshold, temporal scope), CGCERS weighting parameters ($\alpha$, $\beta$, $\gamma$, $\lambda$), and contradiction detection thresholds ($\theta_1$, $\tau$).

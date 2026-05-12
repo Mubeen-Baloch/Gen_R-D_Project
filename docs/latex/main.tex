@@ -1,0 +1,182 @@
+% Uncertainty-Aware Scientific Claim Synthesis
+% LLNCS macro package for Springer Computer Science proceedings
+% Version 2.21 of 2022/01/12
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{tikz}
+\usepackage{setspace}
+\usetikzlibrary{shapes,arrows,positioning,fit}
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  language=Python,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red}
+}
+
+\begin{document}
+
+% =====================================================================
+%  COVER PAGE — LLNCS title block + institutional details
+% =====================================================================
+
+\title{Uncertainty-Aware Scientific Claim Synthesis:\\A Multi-Agent Framework for Contradiction Detection,\\Gap Formalization, and Confidence-Grounded\\Literature Review Generation}
+
+\titlerunning{Uncertainty-Aware Scientific Claim Synthesis}
+
+\author{Muhammad Mubeen\inst{1} \and
+Muhammad Nouman Hafeez\inst{1} \and
+Muhammad Asim\inst{1}}
+
+\authorrunning{M. Mubeen et al.}
+
+\institute{Department of Computer Science, FAST-NUCES, Islamabad, Pakistan\\
+\email{\{i210794, i210416, i210852\}@nu.edu.pk}}
+
+\maketitle
+\thispagestyle{empty}
+
+\vspace{1.0cm}
+
+\begin{center}
+
+{\fontsize{14}{16}\selectfont Supervised by}\\[0.35cm]
+{\fontsize{16}{18}\selectfont \textbf{Dr.\ Akhtar Jameel}}
+
+\vspace{1.2cm}
+
+\includegraphics[width=0.22\textwidth]{FASTLogo.jpg}
+
+\vspace{0.8cm}
+
+{\fontsize{14}{16}\selectfont \textbf{Department of Computer Science}}
+
+\vspace{0.3cm}
+
+{\fontsize{14}{16}\selectfont \textbf{National University of Computer and Emerging Sciences\\Islamabad, Pakistan}}
+
+\vspace{0.5cm}
+
+{\fontsize{14}{16}\selectfont \textbf{April, 2026}}
+
+\end{center}
+
+\clearpage
+
+\begin{abstract}
+The exponential growth of scientific publications has created an unprecedented challenge for researchers attempting to synthesize knowledge, identify genuine research gaps, and navigate conflicting findings across literature. Existing automated literature review systems treat papers as flat, unordered collections and generate summaries that lack epistemic grounding, ignore inter-paper contradictions, and produce vague, unverifiable gap claims. This paper presents a novel autonomous multi-agent framework that addresses these fundamental limitations through five core technical contributions: (1)~a \emph{Confidence-Graded Claim Extraction and Reliability Scoring} (CGCERS) mechanism that assigns uncertainty estimates to extracted scientific claims based on multi-paper consensus analysis; (2)~a \emph{Contradiction Detection and Resolution Agent} (CDRA) that identifies, classifies, and reconciles conflicting assertions using a structured four-dimensional conflict taxonomy; (3)~a \emph{Formalized Research Gap Ontology} (FRGO) that produces structured, verifiable gap objects with falsifiability statements; (4)~a \emph{Dynamic Scientific Knowledge Graph} (DSKG) built on NetworkX serving as the central intermediate representation; and (5)~a \emph{Temporal Knowledge Evolution Tracker} (TKET) for modeling diachronic research trajectories. The system is orchestrated by an autonomy loop controller that iteratively refines outputs based on critic agent feedback. We implement the complete framework using Google Gemini as the primary reasoning engine with a modular architecture supporting provider switching, and deploy a Streamlit-based interactive frontend for visualization and exploration.
+
+\keywords{Multi-Agent Systems \and Literature Review Generation \and Scientific Knowledge Graphs \and Contradiction Detection \and Research Gap Identification \and Uncertainty Quantification \and Large Language Models}
+\end{abstract}
+
+%===================================================================
+\section{Introduction}
+%===================================================================
+
+\subsection{Motivation}
+
+Scientific knowledge is growing at a rate that fundamentally outpaces human capacity to synthesize it. In 2023 alone, over 2.8~million peer-reviewed articles were indexed across major academic databases~\cite{ref_growth}. A single research domain such as transformer-based natural language processing now encompasses thousands of active papers, with findings that frequently build upon, contradict, or supersede one another. The literature review---the foundational activity of any research endeavor---has become a bottleneck of enormous proportion.
+
+Manual literature review is time-consuming, subjective, and increasingly infeasible at scale. A thorough review of even a moderately sized domain can take months of expert effort, and the resulting document reflects the cognitive limitations of a single reviewer: selective coverage, unconscious bias toward familiar clusters of work, and an inability to systematically detect contradictions spread across hundreds of papers~\cite{ref_autosurvey}.
+
+Automated approaches have attempted to address this problem, but they introduce a different class of failures. Summarization-based systems produce fluent text that lacks epistemic grounding. Pipeline-based agent systems treat synthesis as retrieval followed by concatenation~\cite{ref_litllm}. None of the existing systems ask---and answer---the most important questions a skilled reviewer asks: \emph{How confident should I be in this claim? Which papers disagree with each other, and why? Where exactly is the frontier of knowledge, and what is the most specific gap I can formulate?}
+
+This paper proposes a system architecture that places these three questions at its core.
+
+\subsection{Research Motivation Through a Concrete Example}
+
+Consider the domain of retrieval-augmented generation (RAG). A researcher entering this domain encounters papers claiming that RAG consistently outperforms parametric-only models on knowledge-intensive tasks, while other papers demonstrate that RAG performance degrades significantly for multi-hop reasoning~\cite{ref_rag}. Still others argue the comparison is unfair because benchmarks differ. A naive summarization system produces a paragraph that smooths over these contradictions. A skilled human reviewer identifies the disagreement, classifies it as methodological, and formulates a specific gap. Our system is designed to replicate this expert reasoning process autonomously.
+
+\subsection{Key Limitations of Prior Work}
+
+Existing systems including AutoSurvey~\cite{ref_autosurvey}, LitLLM~\cite{ref_litllm}, SurveyAgent~\cite{ref_surveyagent}, and ResearchAgent~\cite{ref_researchagent} share the following structural limitations:
+
+\begin{enumerate}
+    \item \textbf{Flat Paper Representation:} Papers are stored as embeddings or text chunks without structured relational modeling, making cross-paper contradiction detection effectively impossible.
+    \item \textbf{Ungrounded Claim Generation:} Generated reviews assert claims without any mechanism for tracking how many papers support a claim, whether supporting papers are recent, or whether counter-evidence exists.
+    \item \textbf{Vague Gap Identification:} Gap statements are generated by prompting an LLM to identify ``what is missing,'' producing generic, unverifiable, and untethered claims.
+    \item \textbf{Static, Non-Temporal Synthesis:} Papers published in 2018 and 2024 are treated equivalently, ignoring the temporal evolution of scientific consensus.
+    \item \textbf{Evaluation Inadequacy:} ROUGE and BERTScore measure surface similarity, not synthesis quality, contradiction coverage, or gap accuracy~\cite{ref_rouge}.
+\end{enumerate}
+
+\subsection{Contributions}
+
+This paper makes the following novel technical contributions:
+
+\begin{itemize}
+    \item \textbf{CGCERS:} A mechanism that extracts atomic scientific claims, maps them across the corpus, and assigns confidence scores based on multi-paper consensus, recency weighting, and counter-evidence presence.
+    \item \textbf{CDRA:} A specialized two-stage agent that identifies conflicting claims, classifies conflicts using a four-dimensional taxonomy (methodological, domain-specificity, temporal, definitional), and generates reconciliation statements.
+    \item \textbf{FRGO:} A structured representation of research gaps as typed, evidence-grounded objects with explicit falsifiability statements enabling empirical evaluation.
+    \item \textbf{DSKG:} A NetworkX-based heterogeneous directed graph replacing flat vector stores, with five node types and eight epistemic edge types enabling graph-based synthesis reasoning.
+    \item \textbf{TKET:} A module modeling the diachronic trajectory of research threads, tracking consensus shifts, method emergence, and claim qualification over time.
+    \item \textbf{Novel Evaluation Protocol:} Including Claim Coverage Score (CCS), Contradiction Detection F1 (CD-F1), Gap Precision at K (GP@K), Temporal Coherence Score (TCS), and Confidence Calibration Score (CalibScore).
+\end{itemize}
+
+%===================================================================
+\section{Problem Statement}
+%===================================================================
+
+\subsection{Formal Problem Definition}
+
+Let $\mathcal{P} = \{p_1, p_2, \ldots, p_n\}$ be a corpus of $n$ research papers relevant to a user-specified research topic $T$. Each paper $p_i$ contains a set of scientific claims $\mathcal{C}_i = \{c_{i,1}, c_{i,2}, \ldots\}$, where each claim $c$ is a propositional assertion about methods, findings, datasets, or theoretical positions.
+
+We define the following sub-problems:
+
+\noindent\textbf{Sub-problem 1 --- Confidence-Graded Claim Extraction:} Extract the complete claim set $\mathcal{C} = \bigcup_i \mathcal{C}_i$ and for each claim $c \in \mathcal{C}$, compute a confidence score $\sigma(c) \in [0,1]$ reflecting multi-paper consensus and recency.
+
+\noindent\textbf{Sub-problem 2 --- Contradiction Detection:} Identify the contradiction set $\mathcal{X} = \{(c_a, c_b) \mid c_a \text{ conflicts with } c_b\}$. For each contradiction, produce a resolution statement $r$ and a conflict class $\kappa \in \{$methodological, domain-specificity, temporal, definitional$\}$.
+
+\noindent\textbf{Sub-problem 3 --- Formalized Gap Generation:} Generate a structured gap set $\mathcal{G} = \{g_1, g_2, \ldots\}$ where each gap $g$ is a typed object with grounded evidence, specific enough to be empirically evaluated against future publications.
+
+\noindent\textbf{Sub-problem 4 --- Structured Review Generation:} Synthesize a coherent literature review $\mathcal{R}$ that integrates $\mathcal{C}$, $\mathcal{X}$, and $\mathcal{G}$ with epistemic grounding, thematic organization, and temporal awareness.
+
+\subsection{Research Questions}
+
+This work addresses four primary research questions:
+
+\begin{description}
+    \item[RQ1:] Can a multi-agent system automatically extract scientific claims and assign calibrated confidence scores that correlate with expert assessments?
+    \item[RQ2:] Can automated contradiction detection achieve recall and precision comparable to expert reviewers?
+    \item[RQ3:] Can formalized research gap objects be empirically validated by correlating with papers published after the corpus cutoff date?
+    \item[RQ4:] Does a Knowledge Graph intermediate representation produce measurably more coherent reviews compared to flat vector store baselines?
+\end{description}
+
+%===================================================================
+\section{Related Work}
+%===================================================================
+
+\subsection{Automated Literature Review Systems}
+
+Early automated review systems relied on extractive summarization, selecting and concatenating relevant sentences from source papers~\cite{ref_extractive}. The introduction of transformer-based language models enabled abstractive summarization with systems like ScisummNet producing more fluent summaries~\cite{ref_scisummnet}. However, fluency does not imply synthesis quality.
+
+More recent systems including AutoSurvey~\cite{ref_autosurvey} adopt multi-stage LLM pipelines for survey generation. LitLLM~\cite{ref_litllm} introduced a human-in-the-loop approach that improves relevance at the cost of autonomy. SurveyAgent~\cite{ref_surveyagent} applied ReAct-style reasoning to survey generation, enabling iterative query refinement. These systems represent genuine progress but share the fundamental limitation of treating the paper corpus as a flat retrieval space rather than a structured relational knowledge base.
+
+\subsection{Multi-Agent Reasoning Systems}
+
+The ReAct framework~\cite{ref_react} established the foundation for interleaving reasoning and action in language model agents. Reflexion~\cite{ref_reflexion} extended this by introducing self-evaluation and memory for iterative improvement. More recently, LangGraph~\cite{ref_langgraph} and CrewAI~\cite{ref_crewai} have provided frameworks for orchestrating multiple specialized agents with defined roles and communication protocols. Our system builds upon these foundations but introduces agent specializations designed specifically for scientific reasoning tasks.
+
+\subsection{Scientific Knowledge Graphs}
+
+Knowledge graphs have been applied to scientific literature through systems such as ORKG (Open Research Knowledge Graph)~\cite{ref_orkg} and ScholarlyKG~\cite{ref_scholarlykg}. These systems require substantial human annotation effort. Our Dynamic Scientific Knowledge Graph is constructed autonomously from extracted claims, with the novel addition of epistemic edge types (supports, contradicts, extends, qualifies) enabling contradiction detection at the graph level.
+
+\subsection{Research Gap Identification}
+
+Research gap identification has received limited formal treatment. Most systems generate gap statements through direct LLM prompting or identify gaps as absent topics~\cite{ref_gapsurvey}. Our formalized gap ontology represents, to our knowledge, the first attempt to define research gaps as typed, evidence-grounded, empirically evaluable structured objects with explicit falsifiability statements.
+
+\input{methodology}
+\input{implementation}
+\input{evaluation}

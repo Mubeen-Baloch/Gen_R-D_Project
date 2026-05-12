@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  research-agent:
+    build: .
+    container_name: genai_research_agent
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+    environment:
+      - GROBID_SERVER_URL=http://grobid:8070
+    depends_on:
+      - grobid
+    restart: unless-stopped
+
+  grobid:
+    image: grobid/grobid:0.8.0
+    container_name: grobid_service
+    ports:
+      - "8070:8070"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8070/api/isalive"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  data:

@@ -1,0 +1,212 @@
+%===================================================================
+\section{Proposed Methodology}
+%===================================================================
+
+\subsection{System Overview}
+
+The proposed system follows an iterative autonomous loop structured around a central Dynamic Scientific Knowledge Graph (DSKG) as its core intermediate representation. Unlike existing systems that treat synthesis as a linear pipeline, our architecture is fundamentally graph-centric: all agents read from and write to the DSKG, enabling collective reasoning across the entire agent ensemble. Fig.~\ref{fig:arch} illustrates the high-level execution flow.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=0.6cm,
+    block/.style={rectangle, draw, fill=blue!8, text width=5.8cm, text centered, rounded corners, minimum height=0.7cm, font=\small},
+    arrow/.style={->, >=stealth, thick},
+    label/.style={font=\scriptsize\itshape, text=gray}
+]
+\node[block, fill=green!10] (input) {User Input (Topic $T$)};
+\node[block, below=of input] (goal) {Goal Interpreter $\rightarrow$ Refined Query + Subtopics};
+\node[block, below=of goal] (plan) {Planner Agent $\rightarrow$ Task Execution Plan};
+\node[block, below=of plan, fill=orange!10] (retrieve) {Retriever Agent $\rightarrow$ Paper Corpus};
+\node[block, below=of retrieve] (pdf) {PDF Processor (GROBID) $\rightarrow$ Structured Papers};
+\node[block, below=of pdf] (claim) {Claim Extractor $\rightarrow$ Atomic Claims};
+\node[block, below=of claim] (conf) {Confidence Scorer (CGCERS) $\rightarrow$ Graded Claims};
+\node[block, below=of conf, fill=yellow!10] (dskg) {DSKG Builder $\rightarrow$ Knowledge Graph};
+\node[block, below=of dskg, fill=red!8] (contra) {Contradiction Detector (CDRA) $\rightarrow$ Conflicts};
+\node[block, below=of contra] (gap) {Gap Analyzer (FRGO) $\rightarrow$ Research Gaps};
+\node[block, below=of gap] (temp) {Temporal Tracker (TKET) $\rightarrow$ Threads};
+\node[block, below=of temp, fill=purple!8] (synth) {Synthesizer $\rightarrow$ Literature Review};
+\node[block, below=of synth] (critic) {Critic Agent $\rightarrow$ Quality Evaluation};
+\node[block, below=of critic, fill=green!10] (loop) {Autonomy Loop: Refine or Terminate};
+
+\foreach \a/\b in {input/goal, goal/plan, plan/retrieve, retrieve/pdf, pdf/claim, claim/conf, conf/dskg, dskg/contra, contra/gap, gap/temp, temp/synth, synth/critic, critic/loop}
+    \draw[arrow] (\a) -- (\b);
+\draw[arrow, dashed, bend right=60] (loop.west) to node[left, label] {iterate} (retrieve.west);
+\end{tikzpicture}
+\caption{High-level execution flow of the multi-agent autonomy loop. Dashed arrow indicates iterative refinement triggered by the Critic Agent's quality assessment.}\label{fig:arch}
+\end{figure}
+
+\subsection{Confidence-Graded Claim Extraction and Reliability Scoring (CGCERS)}
+
+\subsubsection{Atomic Claim Extraction.}
+The Claim Extractor Agent processes each paper through a structured prompt that instructs the LLM to decompose the paper into atomic propositional claims. An atomic claim is defined as a single, indivisible assertion that can be independently evaluated as true or false within a defined context. Claims are extracted at three levels:
+
+\begin{itemize}
+    \item \textbf{Method Claims:} Describing what technique or approach was proposed or used.
+    \item \textbf{Result Claims:} Describing empirical outcomes, benchmark scores, or observed phenomena.
+    \item \textbf{Theoretical Claims:} Describing proposed explanations, hypotheses, or theoretical positions.
+\end{itemize}
+
+Each extracted claim is stored with its source paper identifier, section location, claim type label, confidence indicators (hedging language such as ``suggests'' vs.\ ``demonstrates''), subject entities, and condition qualifiers.
+
+\subsubsection{Confidence Scoring Formula.}
+For each claim $c$ extracted from paper $p_i$, the confidence score $\sigma(c)$ is computed as:
+
+\begin{equation}\label{eq:cgcers}
+\sigma(c) = \alpha \cdot \text{Consensus}(c) + \beta \cdot \text{Recency}(c) - \gamma \cdot \text{Contradiction}(c)
+\end{equation}
+
+\noindent where:
+\begin{itemize}
+    \item $\text{Consensus}(c)$ is the proportion of papers in the corpus containing a semantically equivalent or supporting claim, computed via embedding similarity threshold matching against the DSKG.
+    \item $\text{Recency}(c)$ is a time-decay weighted score: $\text{Recency}(c) = \frac{1}{|S_c|}\sum_{p_j \in S_c} e^{-\lambda(Y_{\text{current}} - Y_j)}$, where $Y_j$ is the publication year and $\lambda$ is a decay constant.
+    \item $\text{Contradiction}(c)$ is the proportion of papers containing claims flagged as conflicting with $c$ by the CDRA.
+    \item $\alpha, \beta, \gamma$ are weighting parameters set to $\alpha=0.4$, $\beta=0.35$, $\gamma=0.25$.
+\end{itemize}
+
+The resulting score categorizes each claim as shown in Table~\ref{tab:confidence}.
+
+\begin{table}[ht]
+\caption{Confidence categories derived from the CGCERS score $\sigma(c)$.}\label{tab:confidence}
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Category} & \textbf{Score Range} & \textbf{Interpretation} \\
+\midrule
+High Confidence & $\sigma(c) \geq 0.75$ & Well-established, multi-paper support \\
+Moderate Confidence & $0.50 \leq \sigma(c) < 0.75$ & Supported but limited evidence \\
+Contested & $0.25 \leq \sigma(c) < 0.50$ & Conflicting evidence exists \\
+Disputed & $\sigma(c) < 0.25$ & Significant counter-evidence \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Contradiction Detection and Resolution Agent (CDRA)}
+
+\subsubsection{Two-Stage Detection Architecture.}
+Contradiction detection operates at two levels, balancing computational efficiency with detection accuracy:
+
+\noindent\textbf{Stage~1 --- Candidate Pair Identification:} For each pair of claims from different papers, a contradiction candidate score is computed using a pre-trained Natural Language Inference (NLI) model (cross-encoder/nli-deberta-v3-base). Claim pairs with embedding similarity above threshold $\theta_1$ are evaluated by the NLI model, and pairs with a contradiction probability above threshold $\tau$ are forwarded to Stage~2.
+
+\noindent\textbf{Stage~2 --- LLM-Based Confirmation and Classification:} Each candidate pair is submitted to the LLM with a structured prompt instructing it to: (a)~confirm whether the pair is genuinely contradictory, partially contradictory, or non-contradictory; (b)~assign a conflict type from the four-dimensional taxonomy; and (c)~generate an explanation and reconciliation statement.
+
+\subsubsection{Four-Dimensional Conflict Taxonomy.}
+We define four orthogonal conflict types:
+
+\begin{enumerate}
+    \item \textbf{Methodological Conflict:} Different conclusions due to different methods, metrics, or experimental setups.
+    \item \textbf{Domain-Specificity Conflict:} Claims conflict because they hold in different application domains.
+    \item \textbf{Temporal Conflict:} One finding has been superseded or qualified by more recent work.
+    \item \textbf{Definitional Conflict:} Apparent conflict arising from different definitions of the same term.
+\end{enumerate}
+
+\subsubsection{The Conflict Registry.}
+For each confirmed contradiction, the Resolution Agent generates a \emph{Reconciliation Statement}---a structured explanation presenting both claims, identifying the conflict type, and synthesizing a qualified assertion true under specified conditions. These are stored in a \emph{Conflict Registry} and integrated into the review as a dedicated ``Contested Claims and Methodological Disputes'' section.
+
+\subsection{Formalized Research Gap Ontology (FRGO)}
+
+\subsubsection{Gap Object Schema.}
+Each research gap is represented as a structured typed object containing: \texttt{gap\_type}, \texttt{topic\_cluster}, \texttt{missing\_intersection}, \texttt{gap\_statement}, \texttt{evidence\_papers}, \texttt{evidence\_type}, \texttt{implied\_by}, \texttt{confidence}, \texttt{temporal\_position}, \texttt{gap\_class}, and critically, a \texttt{falsifiability} statement describing what a paper that fills the gap would contain.
+
+\subsubsection{Gap Type Taxonomy.}
+Gaps are classified into four types:
+\begin{itemize}
+    \item \textbf{Unexplored Intersection:} A combination of established topics that no paper has addressed together, identified by finding topic cluster pairs sharing no papers in the DSKG.
+    \item \textbf{Underexplored Area:} A topic addressed by fewer papers than its citation frequency would predict.
+    \item \textbf{Contradictory State:} Fundamental disagreement with no resolution paper providing definitive synthesis.
+    \item \textbf{Methodological Gap:} An established finding not reproduced using alternative methodologies.
+\end{itemize}
+
+\subsubsection{Empirical Gap Validation Protocol.}
+The defining feature of the FRGO is its empirical evaluability. Each gap object includes an explicit falsifiability statement. Evaluation uses a held-out set of papers published after the corpus cutoff date. \emph{Gap Precision at K} (GP@K) is computed as the proportion of top-K identified gaps filled by papers in the held-out set.
+
+\subsection{Dynamic Scientific Knowledge Graph (DSKG)}
+
+\subsubsection{Graph Schema.}
+The DSKG is a directed heterogeneous graph $G = (V, E)$ implemented in NetworkX where:
+
+\noindent\textbf{Node Types} $V$: Concept nodes (research concepts, datasets, metrics), Claim nodes (atomic scientific claims), Paper nodes (metadata), Method nodes (techniques, algorithms), and Finding nodes (empirical outcomes).
+
+\noindent\textbf{Edge Types} $E$ (Epistemic Relationships): \emph{supports}, \emph{contradicts} (bidirectional), \emph{extends}, \emph{qualifies}, \emph{applies\_to}, \emph{evaluated\_on}, \emph{introduces}, and \emph{outperforms}.
+
+\subsubsection{Graph-Based Synthesis Reasoning.}
+The Synthesizer Agent generates the review by traversing the DSKG:
+\begin{itemize}
+    \item \textbf{Thematic Clustering:} Louvain community detection identifies cohesive clusters representing natural review subsections.
+    \item \textbf{Lineage Tracing:} Following \emph{extends} and \emph{introduces} edges reconstructs developmental history.
+    \item \textbf{Contradiction Surfacing:} Traversing \emph{contradicts} edges ensures comprehensive conflict coverage per thematic cluster.
+    \item \textbf{Structural Gap Detection:} Disconnected subgraphs, sparse cross-cluster edges, and high-centrality nodes with few extensions indicate research gaps.
+\end{itemize}
+
+\subsection{Temporal Knowledge Evolution Tracker (TKET)}
+
+The TKET models research threads as temporal sequences by associating DSKG nodes with publication timestamps. For each thread, it computes:
+
+\begin{itemize}
+    \item \textbf{Consensus Trajectory:} How the dominant claim has shifted over time---positive (growing consensus), diverging (increasing dispute), or reversal (paradigm shift).
+    \item \textbf{Method Emergence Curves:} First appearance and adoption rate of key methods within a thread.
+    \item \textbf{Claim Qualification Patterns:} Instances where a claim is explicitly qualified, refined, or bounded by subsequent papers.
+\end{itemize}
+
+This enables \emph{Diachronic Narrative} sections that describe how the field's understanding has evolved: ``Early work from 2018--2020 established X. This was qualified in 2021--2022 by evidence that X holds only under condition Y. The current consensus as of 2024 is Z.''
+
+\subsection{Multi-Agent Architecture}
+
+\subsubsection{Agent Roster.}
+Table~\ref{tab:agents} summarizes the eleven specialized agents in the framework.
+
+\begin{table}[ht]
+\caption{Agent roster and responsibilities.}\label{tab:agents}
+\centering
+\small
+\begin{tabular}{p{3.2cm}p{8cm}}
+\toprule
+\textbf{Agent} & \textbf{Responsibility} \\
+\midrule
+Goal Interpreter & Refines user topic into precise query and subtopic decomposition \\
+Planner & Generates task execution DAG with dependency ordering \\
+Retriever & Orchestrates Semantic Scholar and arXiv for corpus construction \\
+Claim Extractor & Extracts atomic claims from paper sections via structured prompts \\
+Confidence Scorer & Implements CGCERS formula for confidence grading \\
+Contradiction Detector & Two-stage CDRA with NLI filtering and LLM confirmation \\
+Resolution Agent & Generates reconciliation statements for confirmed conflicts \\
+DSKG Builder & Assembles papers, claims, and relations into the knowledge graph \\
+Gap Analyzer & FRGO formalization using DSKG structural analysis \\
+Temporal Tracker & Models diachronic trajectories and consensus evolution \\
+Synthesizer & Graph-traversal-based review generation with confidence annotations \\
+Critic & Evaluates review quality on five dimensions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{The Autonomy Loop.}
+The Autonomy Loop Controller evaluates the Critic Agent's quality assessment against a configurable threshold $Q^*$. The loop proceeds as specified in Algorithm~\ref{alg:loop}.
+
+\begin{algorithm}[ht]
+\caption{Autonomy Loop Controller}\label{alg:loop}
+\begin{algorithmic}[1]
+\REQUIRE Topic $T$, quality threshold $Q^*$, max iterations $I_{\max}$
+\STATE Initialize PipelineState, DSKG, ConflictRegistry, GapStore
+\STATE $\text{state} \leftarrow \text{GoalInterpreter.run}(T)$
+\STATE $\text{state} \leftarrow \text{Planner.run}(\text{state})$
+\FOR{$i = 1$ to $I_{\max}$}
+    \STATE $\text{state} \leftarrow \text{Retriever.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{PDFProcessor.process}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{ClaimExtractor.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{ConfidenceScorer.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{ContradictionDetector.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{ResolutionAgent.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{DSKGBuilder.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{GapAnalyzer.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{TemporalTracker.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{Synthesizer.run}(\text{state})$
+    \STATE $\text{state} \leftarrow \text{Critic.run}(\text{state})$
+    \IF{$\text{state.quality} \geq Q^*$}
+        \STATE \textbf{break}
+    \ELSE
+        \STATE Apply targeted refinements based on Critic feedback
+    \ENDIF
+\ENDFOR
+\RETURN state.review
+\end{algorithmic}
+\end{algorithm}

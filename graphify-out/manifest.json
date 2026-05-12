@@ -1,0 +1,242 @@
+{
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\ablation_study.py": {
+    "mtime": 1778419153.1287298,
+    "hash": "a08335552d79b68cef770672147d3460"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\app.py": {
+    "mtime": 1778412500.5371308,
+    "hash": "d3a722a36413ad96109b0309e8b0b2b9"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\run.py": {
+    "mtime": 1778412500.726396,
+    "hash": "841b40cfe9bcbe105113421cf96db9a1"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\test_embed.py": {
+    "mtime": 1778412500.792183,
+    "hash": "fe4416ec73d56981067a01588f76925b"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\test_gemini.py": {
+    "mtime": 1778412500.792183,
+    "hash": "d734eda36d74e221fe233d8088cfee26"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\__init__.py": {
+    "mtime": 1778412500.729374,
+    "hash": "311668715231e7d4ae428060c9453b49"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\base_agent.py": {
+    "mtime": 1778412500.7431526,
+    "hash": "04e61901d67557c041959760168cb029"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\claim_extractor.py": {
+    "mtime": 1778412500.7431526,
+    "hash": "a23ffbdbf7fbd29c70d47208a8a48af0"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\confidence_scorer.py": {
+    "mtime": 1778412500.7431526,
+    "hash": "dda6aa8573c4b0ae0b0bf35598f36078"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\contradiction_detector.py": {
+    "mtime": 1778412500.7431526,
+    "hash": "ec901748388b9cfe93e294875aceb8a6"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\critic.py": {
+    "mtime": 1778412500.7459483,
+    "hash": "d9a72188b33a1f5a71569935f2c27ea5"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\dskg_builder.py": {
+    "mtime": 1778412500.7459483,
+    "hash": "b1d85d077175dd5375d0589bcc1ee77b"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\gap_analyzer.py": {
+    "mtime": 1778412500.7469552,
+    "hash": "faa2436f4ef2a8313354417dced8378e"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\goal_interpreter.py": {
+    "mtime": 1778412500.7469552,
+    "hash": "6e4fa284a3f23c124fdd2a317486168c"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\planner.py": {
+    "mtime": 1778412500.7469552,
+    "hash": "373e166040746d70ff6920779e5c9507"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\resolution_agent.py": {
+    "mtime": 1778412500.7489717,
+    "hash": "0bcb30ca0065ea3a46802bd9c54e064a"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\retriever.py": {
+    "mtime": 1778412500.7489717,
+    "hash": "4a333cd14deeed133bae0a30ce69f4cf"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\synthesizer.py": {
+    "mtime": 1778412500.7489717,
+    "hash": "4be68677a6c827797f1536ef139b201b"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\temporal_tracker.py": {
+    "mtime": 1778412500.7489717,
+    "hash": "a7a316dc90e0c8342e15f0d571b64479"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\agents\\__init__.py": {
+    "mtime": 1778412500.7313929,
+    "hash": "6eb897e4acaff62b5fd4ebf27d05a96a"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\config\\settings.py": {
+    "mtime": 1778412500.754196,
+    "hash": "e651802cf05e0e1025637f6a70688d6f"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\config\\__init__.py": {
+    "mtime": 1778412500.7520082,
+    "hash": "d136aaeb0a7eac554f4c439926c35c7c"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\evaluation\\metrics.py": {
+    "mtime": 1778412500.7576964,
+    "hash": "bb0f7aed3cb1e7e4df403d38b75bdbfa"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\evaluation\\__init__.py": {
+    "mtime": 1778412500.754714,
+    "hash": "43f625f552d5a01a6a0554bdcfdf1d4c"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\knowledge_graph\\dskg.py": {
+    "mtime": 1778412500.7615232,
+    "hash": "29b83617396c860e1de13de05ddc86ee"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\knowledge_graph\\graph_algorithms.py": {
+    "mtime": 1778412500.7630534,
+    "hash": "c718afd7150455b6520ce712e3eb5d3c"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\knowledge_graph\\__init__.py": {
+    "mtime": 1778412500.7582424,
+    "hash": "2893ac49ed3d99a3db8bdd2cbddf9ff1"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\models\\data_models.py": {
+    "mtime": 1778412500.7671661,
+    "hash": "2282f86ac3d7ff1752a9a682d43d3b1a"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\models\\embeddings.py": {
+    "mtime": 1778412500.7671661,
+    "hash": "0e59877f40d4985c9e6ad16ec3504a2b"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\models\\__init__.py": {
+    "mtime": 1778412500.7636113,
+    "hash": "b6e562a51ae089407758709fbccabb29"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\orchestration\\ablation_loop.py": {
+    "mtime": 1778419139.85044,
+    "hash": "7d2a46ac9848e1a5a67ae7c963764291"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\orchestration\\autonomy_loop.py": {
+    "mtime": 1778412500.7715082,
+    "hash": "cf9c74051a4f7d0d251353112d278e71"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\orchestration\\__init__.py": {
+    "mtime": 1778412500.7671661,
+    "hash": "8356aa364f5938a68d803d48d718dc74"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\pipeline\\pdf_processor.py": {
+    "mtime": 1778412500.7736833,
+    "hash": "c27e9b61ba5d5027a1a61751eae086a5"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\pipeline\\__init__.py": {
+    "mtime": 1778412500.7726233,
+    "hash": "cbe44e13f7d34f257421a2a21daf439d"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\retrieval\\arxiv_retriever.py": {
+    "mtime": 1778412500.779276,
+    "hash": "b24510d4e99392120b3b882af0f57d4f"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\retrieval\\paper_downloader.py": {
+    "mtime": 1778412500.779276,
+    "hash": "57a8388c3268d92322f625ef86953a8d"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\retrieval\\semantic_scholar.py": {
+    "mtime": 1778412500.779276,
+    "hash": "351cf64f1691ccc8a22f15d2cca32b7f"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\retrieval\\__init__.py": {
+    "mtime": 1778412500.7756975,
+    "hash": "70acd5171d859810ddc3b7cb3c376c9a"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\stores\\claim_store.py": {
+    "mtime": 1778412500.7863505,
+    "hash": "3a564c7a8134f2854c7d251957970fdc"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\stores\\conflict_registry.py": {
+    "mtime": 1778412500.786873,
+    "hash": "fea8c7eb37760e7145b2c3f0df62c5c8"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\stores\\gap_store.py": {
+    "mtime": 1778412500.786873,
+    "hash": "cbe4bcb8655497d5d680d71abe5be3f0"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\stores\\__init__.py": {
+    "mtime": 1778412500.7822394,
+    "hash": "d28fabb7a494872a86b812e1ec156d52"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\utils\\prompts.py": {
+    "mtime": 1778412500.7901075,
+    "hash": "9ab9961f50679949101fc4c24c31e7a5"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\src\\utils\\__init__.py": {
+    "mtime": 1778412500.789041,
+    "hash": "727bde8b4cdf419d83d41fd062efd784"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\docker-compose.yml": {
+    "mtime": 1778413595.5890024,
+    "hash": "d421ec201537cb8bdde43c7a9a38bcb3"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\project_idea.txt": {
+    "mtime": 1778412500.726396,
+    "hash": "a6a49384b59598b14d91467c0f8a8280"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\README_DOCKER.md": {
+    "mtime": 1778413611.6037903,
+    "hash": "9e59e595be6ebe253f78d3cbe547723b"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\requirements.txt": {
+    "mtime": 1778412500.726396,
+    "hash": "12c8d6bafaf9fabbd17381ffee7e6d9d"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\graphify-out\\converted\\genai_research_project_idea_f7c92519.md": {
+    "mtime": 1778424028.5917237,
+    "hash": "0b39f8979a082ef06a70266ff2a4dc67"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\graphify-out\\converted\\Project Rubrics_c84fa38e.md": {
+    "mtime": 1778424028.8674228,
+    "hash": "bb73daf2e85ca213fb6a9c7054491428"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\data\\papers\\arxiv-1804.08516v1.pdf": {
+    "mtime": 1778412500.5967684,
+    "hash": "583334b373875bfe6f3ec30717a40a21"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\data\\papers\\arxiv-1804.08535v1.pdf": {
+    "mtime": 1778412500.6132667,
+    "hash": "bca7133d769722e3121f78bea2f3b7e1"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\data\\papers\\arxiv-2104.12405v2.pdf": {
+    "mtime": 1778412500.6486752,
+    "hash": "d5e79ee57eb18e5a5b76c6cf78d8e527"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\data\\papers\\arxiv-2104.12422v2.pdf": {
+    "mtime": 1778412500.679171,
+    "hash": "e673c352dcbe78f5d3d5fe191292623b"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\data\\papers\\arxiv-2601.05264v1.pdf": {
+    "mtime": 1778412500.6946902,
+    "hash": "296ad21be7f1ee7e8483a7924f43e6ab"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\docs\\latex\\architecture.pdf": {
+    "mtime": 1778412500.5466034,
+    "hash": "7b3be354d144e2741266b5b49a5babac"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\docs\\latex\\Uncertainty_Aware_Scientific_Claim_Synthesis_A_Multi_Agent_Framework_for_Contradiction_Detection_Gap_Formalization__and_Confidence_GroundedLiterature.pdf": {
+    "mtime": 1778412500.5349362,
+    "hash": "cc432bfc364ad8070b6dd2ebe77b63be"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\docs\\latex\\architecture.png": {
+    "mtime": 1778412500.72279,
+    "hash": "9aeebdfb5c4fdb81b761de63b1eabd38"
+  },
+  "C:\\Users\\dotsm\\Desktop\\Gen_R-D_Project\\docs\\latex\\FASTLogo.jpg": {
+    "mtime": 1778412500.697259,
+    "hash": "877eb16cb6b5a62317a6e65813148232"
+  }
+}
